@@ -18,40 +18,54 @@
     }
   };
 
-  const getBackground = (player: Player) =>
-    `background-image: url('${player.image}'), url('https://www.thesun.co.uk/wp-content/uploads/2023/05/CHELSEA_BG_v1.jpg')`;
+  const getBackground = (image: string) =>
+    `background-image: url('${image}'), url('https://www.thesun.co.uk/wp-content/uploads/2023/05/CHELSEA_BG_v1.jpg')`;
   let current = 0;
 
+  $: canAction = true;
+
   function prev() {
+    if (!canAction) return;
+    canAction = false;
     current = (current - 1 + players.length) % players.length;
+    setTimeout(() => {
+      canAction = true;
+    }, 1000);
   }
 
   function next() {
+    if (!canAction) return;
+    canAction = false;
     current = (current + 1) % players.length;
+    setTimeout(() => {
+      canAction = true;
+    }, 1000);
   }
-
-  let animate = false;
-
-  $: current, (animate = true);
 </script>
 
 <div
   class="flex flex-col items-center justify-center h-screen bg-[url('https://images.unsplash.com/photo-1614850523011-8f49ffc73908?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Ymx1ZSUyMGJhY2tncm91bmR8ZW58MHx8MHx8fDA%3D')]
      bg-cover bg-center bg-no-repeat"
 >
+  <div class="absolute top-0 left-0 w-full h-full bg-black/50"></div>
+  <div class="absolute bottom-0 right-0 text-gray-400 text-xs p-2 hover:text-blue-300 hover:underline">
+    <a href="https://www.facebook.com/hung.041203" target="_blank"
+      >Credit: Lâm Tiên Hưng</a
+    >
+  </div>
   <div
-    class="relative
+    class="relative flex flex-col items-center justify-center
        w-[350px] h-[500px]
        bg-cover bg-center bg-no-repeat
        rounded-lg border-blue-900 border-2 text-white
        shadow-[0_20px_50px_rgba(0,0,255,0.3)]
        transition-all duration-[1000ms] ease-[cubic-bezier(0.4,0,0.2,1)]
-       hover:shadow-[0_0_40px_rgba(0,123,255,0.5)] hover:border-blue-400"
+       hover:shadow-[0_0_40px_rgba(0,123,255,0.5)] hover:border-blue-400
+       z-1
+       "
     class:captain-glow={players[current].isCaptain}
     class:suspended-glow={players[current].isSuspended}
-    style={getBackground(players[current])}
-    class:bounce-card={animate}
-    on:animationend={() => (animate = false)}
+    style={getBackground(players[current].image)}
   >
     <p
       class="player-name absolute bottom-2 left-4"
@@ -79,11 +93,12 @@
       class="absolute top-4 right-4 w-12 h-8"
     />
   </div>
-  <div class="flex gap-4 mt-6">
+  <div class="flex gap-4 mt-6 z-1">
     <button
       on:click={prev}
       class="bg-blue-800/50 hover:bg-blue-600/50 px-4 py-2 rounded shadow text-white"
       aria-label="Previous player"
+      disabled={!canAction}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -104,6 +119,7 @@
       on:click={next}
       class="bg-blue-800/50 hover:bg-blue-600/50 px-4 py-2 rounded shadow text-white"
       aria-label="Next player"
+      disabled={!canAction}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
