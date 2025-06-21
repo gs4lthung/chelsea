@@ -17,6 +17,7 @@
   let canAction = true;
   let imageLoaded = false;
   let currentImage = "";
+  const delayTime = 500;
 
   const resizePlayerName = (name: string) =>
     name.length > 20 ? "font-size: 24px" : "font-size: 30px";
@@ -29,7 +30,7 @@
       const img = new Image();
       img.src = src;
       img.onload = () => {
-        setTimeout(() => resolve(), 500); // 2 seconds delay
+        setTimeout(() => resolve(), delayTime); // 2 seconds delay
       };
     });
   }
@@ -46,7 +47,7 @@
     canAction = false;
     current = (current - 1 + players.length) % players.length;
     await updateImage();
-    setTimeout(() => (canAction = true), 1000);
+    setTimeout(() => (canAction = true), delayTime);
   }
 
   async function next() {
@@ -54,7 +55,7 @@
     canAction = false;
     current = (current + 1) % players.length;
     await updateImage();
-    setTimeout(() => (canAction = true), 1000);
+    setTimeout(() => (canAction = true), delayTime);
   }
 
   onMount(() => {
@@ -90,14 +91,14 @@
       class:captain-glow={players[current].isCaptain}
       class:suspended-glow={players[current].isSuspended}
       style={getBackground(currentImage)}
-      transition:fly={{ y: 50, duration: 500, easing: (t) => t * t }}
+      transition:fly={{ y: 50, duration: delayTime, easing: (t) => t * t }}
     >
       <p
         class="player-name absolute bottom-2 left-4"
         style={resizePlayerName(
           players[current].firstName + players[current].lastName
         )}
-        transition:fade={{ duration: 500 }}
+        transition:fade={{ duration: delayTime }}
       >
         {players[current].firstName}
         <span class="bg-white text-black px-2 rounded">
@@ -107,10 +108,10 @@
 
       <p
         class="player-number absolute bottom-2 right-2 text-2xl font-black text-white
-               bg-gradient-to-br from-blue-800 to-blue-500
+               bg-gradient-to-br from-blue-800 to-blue-delayTime
                px-3 py-1 rounded-xl shadow-[0_0_30px_rgba(0,0,255,0.6)]
                ring-2 ring-white/30 backdrop-blur-md tracking-wider"
-        transition:fade={{ duration: 500 }}
+        transition:fade={{ duration: delayTime }}
       >
         {players[current].id}
       </p>
@@ -120,7 +121,7 @@
         alt="National Team Logo"
         class="absolute top-4 right-4 w-12 h-8"
         style="filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))"
-        transition:fade={{ duration: 500 }}
+        transition:fade={{ duration: delayTime }}
       />
     </div>
   {/if}
