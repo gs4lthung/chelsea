@@ -7,6 +7,7 @@
     id: number | string;
     countryImage: string;
     isCaptain?: boolean;
+    isSuspended?: boolean;
   }
 
   const resizePlayerName = (name: string) => {
@@ -28,6 +29,10 @@
   function next() {
     current = (current + 1) % players.length;
   }
+
+  let animate = false;
+
+  $: current, (animate = true);
 </script>
 
 <div
@@ -40,10 +45,13 @@
        bg-cover bg-center bg-no-repeat
        rounded-lg border-blue-900 border-2 text-white
        shadow-[0_20px_50px_rgba(0,0,255,0.3)]
-       transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]
+       transition-all duration-[1000ms] ease-[cubic-bezier(0.4,0,0.2,1)]
        hover:shadow-[0_0_40px_rgba(0,123,255,0.5)] hover:border-blue-400"
     class:captain-glow={players[current].isCaptain}
+    class:suspended-glow={players[current].isSuspended}
     style={getBackground(players[current])}
+    class:bounce-card={animate}
+    on:animationend={() => (animate = false)}
   >
     <p
       class="player-name absolute bottom-2 left-4"

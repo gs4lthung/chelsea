@@ -225,6 +225,15 @@
         "countryImage": "/usa.png"
     },
     {
+        "id": 404,
+        "firstName": "Mykhailo",
+        "lastName": "Mudryk",
+        "position": "LW",
+        "image": "/404.png",
+        "countryImage": "/ukraina.png",
+        "isSuspended": true
+    },
+    {
         "id": 0,
         "firstName": "Enzo",
         "lastName": "Maresca",
