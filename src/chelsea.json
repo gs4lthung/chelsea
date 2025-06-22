@@ -217,6 +217,14 @@
         "countryImage": "/belgium.png"
     },
     {
+        "id": 41,
+        "firstName": "",
+        "lastName": "Estêvão",
+        "position": "CAM",
+        "image": "/41.png",
+        "countryImage": "/brazil.png"
+    },
+    {
         "id": 44,
         "firstName": "Gabriel",
         "lastName": "Slonina",
