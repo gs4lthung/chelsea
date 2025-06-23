@@ -233,6 +233,14 @@
         "countryImage": "/usa.png"
     },
     {
+        "id": 55,
+        "firstName": "Kendry",
+        "lastName": " Páez",
+        "position": "CAM",
+        "image": "/55.png",
+        "countryImage": "/ecuador.png"
+    },
+    {
         "id": 404,
         "firstName": "Mykhailo",
         "lastName": "Mudryk",
