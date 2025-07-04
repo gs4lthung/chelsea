@@ -137,6 +137,14 @@
         "countryImage": "/france.webp"
     },
     {
+        "id": 20,
+        "firstName": "João",
+        "lastName": "Pedro",
+        "position": "CF",
+        "image": "/20.png",
+        "countryImage": "/brazil.png"
+    },
+    {
         "id": 22,
         "firstName": "Kiernan",
         "lastName": " Dewsbury-Hall",
