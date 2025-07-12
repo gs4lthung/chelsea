@@ -81,14 +81,6 @@
         "countryImage": "/england.png"
     },
     {
-        "id": "11",
-        "firstName": "Noni",
-        "lastName": " Madueke",
-        "position": "RW",
-        "image": "/11.png",
-        "countryImage": "/england.png"
-    },
-    {
         "id": 12,
         "firstName": "Filip",
         "lastName": "Jørgensen",
