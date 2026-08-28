@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chelsea FC - Team Sheet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d15 0%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 1400px;
+            padding: 20px;
+        }
+
+        .pitch {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 100 / 70; /* Pitch ratio */
+            background: linear-gradient(to bottom, #2d5a027 0%, #1a54125 0%, #143d221 0%);
+            border: 2px solid #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        /* Pitch markings */
+        .pitch-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 22%;
+            aspect-ratio: 1 / 1;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .half-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .penalty-area-top,
+        .penalty-area-bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            width: 66.67%;
+            height: 13%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .player-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Player positions */
+        .player {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 4.5%;
+            height: 6.5%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 2px solid #fff;
+        }
+
+        .player:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .player-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .player-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+
+        .player-number {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 900;
+            color: #fff;
+            background: linear-gradient(135deg, #003087 0%, #001d3d4a 0%);
+            padding: 2px 6px;
+            border-radius: 50%;
+        }
+
+        .player-name {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .player-country {
+            position: absolute;
+            top: 15%;
+            right: 15%;
+            width: 20px;
+            height: auto;
+        }
+
+        .captain-indicator {
+            position: absolute;
+            top: 10%;
+            right: 10%;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border-radius: 2px;
+            box-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+        }
+
+        .info-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .player:hover .info-tooltip {
+            opacity: 1;
+        }
+
+        .bench-player {
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding: 10px;
+            }
+
+            .player-number {
+                font-size: 10px;
+                padding: 1.5px 5px;
+            }
+
+            .player-name {
+                font-size: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .player-number {
+                font-size: 9px;
+                padding: 1px 3px;
+            }
+
+            .player-name {
+                font-size: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="legend">
+            <h1>Chelsea FC - Team Sheet</h1>
+            <p>2024-2025 Squad • 4-3-3 Formation</p>
+        </div>
+
+        <!-- Pitch -->
+        <div class="pitch">
+            <!-- Pitch markings -->
+            <div class="pitch-lines">
+                <div class="half-line"></div>
+                <div class="center-circle"></div>
+                <!-- Penalty areas -->
+                <div class="penalty-area-top"></div>
+                <div class="penalty-area-bottom"></div>
+            </div>
+
+            <!-- Players will be rendered here by JavaScript -->
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 12px; height: 12px; background: #ffd700; border-radius: 2px;"></div>
+                    <span style="font-size: 11px; color: #fff;">Captain</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 12px; height: 12px; background: #dc2626; border-radius: 2px;"></div>
+                    <span style="font-size: 11px; color: #fff;">Suspended</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%;"></div>
+                    <span style="font-size: 11px; color: #888;">Player</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="position: absolute; bottom: 10px; width: 100%; text-align: center;">
+            <p style="font-size: 11px; color: #fff;">
+                Click on players to view details • Hover for player info
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Chelsea FC Full Squad - ALL 26 PLAYERS
+        const squad = [
+            { id: 1, firstName: "Robert", lastName: "Sánchez", position: "GK", image: "1.png", countryImage: "spain.png" },
+            { id: 12, firstName: "Robert", lastName: "Sánchez", position: "GK", image: "12.png", countryImage: "spain.png" },
+            { id: 39, firstName: "Robert", lastName: "Sánchez", position: "ST", image: "39.png", countryImage: "england.png" },
+            { id: 44, firstName: "Marcus", lastName: "Alonso", position: "RB", image: "44.png", countryImage: "england.png" },
+            { id: 27, firstName: "Cole", lastName: "Palmer", position: "LB", image: "27.png", countryImage: "england.png" },
+            { id: 2, firstName: "Josh", lastName: "Acheampong", position: "CB", image: "2.png", countryImage: "drcongo.png" },
+            { id: 14, firstName: "Enzo", lastName: "Fernández", position: "CM", image: "8.png", countryImage: "argentina.png", isCaptain: true },
+            { id: 3, firstName: "Marc", lastName: "Cucurella", position: "CB", image: "3.png", countryImage: "england.png" },
+            { id: 6, firstName: "Thiago", lastName: "Silva", position: "CB", image: "6.png", countryImage: "england.png" },
+            { id: 4, firstName: "Tosin", lastName: "Adarabioyo", position: "CB", image: "4.png", countryImage: "england.png" },
+            { id: 21, firstName: "Mykhailo", lastName: "Madueke", position: "ST", image: "21.png", countryImage: "england.png" },
+            { id: 25, firstName: "Moisés", lastName: "Caicedo", position: "ST", image: "25.png", countryImage: "england.png" },
+            { id: 7, firstName: "Raheem", lastName: "Sterling", position: "CM", image: "7.png", countryImage: "england.png" },
+            { id: 22, firstName: "Kiernan", lastName: "Lukita", position: "RM", image: "22.png", countryImage: "england.png" },
+            { id: 15, firstName: "Benoît", lastName: "Badiashile", position: "CB", image: "15.png", countryImage: "france.png" },
+            { id: 17, firstName: "Carney", lastName: "Chukwuemeka", position: "CB", image: "17.png", countryImage: "england.png" },
+            { id: 20, firstName: "Kiernan", lastName: "Lukaku", position: "ST", image: "20.png", countryImage: "england.png" },
+            { id: 8, firstName: "Roméo", lastName: "Lavia", position: "CM", image: "7.png", countryImage: "england.png" },
+            { id: 18, firstName: "Wesley", lastName: "Fofana", position: "CB", image: "18.png", countryImage: "england.png" },
+            { id: 19, firstName: "Axel", lastName: "Disasi", position: "CB", image: "19.png", countryImage: "england.png" },
+            { id: 29, firstName: "João", lastName: "Félix", position: "CM", image: "29.png", countryImage: "england.png" },
+            { id: 23, firstName: "Moisés", lastName: "Caicedo", position: "ST", image: "23.png", countryImage: "cotedivoire.png" },
+            { id: 24, firstName: "Pedro", lastName: "Neto", position: "CM", image: "25.png", countryImage: "england.png" },
+            { id: 32, firstName: "Reece", lastName: "James", position: "RB", image: "32.png", countryImage: "england.png", isCaptain: true },
+            { id: 9, firstName: "Nicolas", lastName: "Jackson", position: "CF", image: "9.png", countryImage: "england.png" },
+            { id: 11, firstName: "Noni", lastName: "Madueke", position: "CM", image: "11.png", countryImage: "england.png" },
+            { id: 5, firstName: "Benoît", lastName: "Badiashile", position: "CB", image: "5.png", countryImage: "france.png" }
+        ];
+
+        // Formation configuration (4-3-3 with proper positions)
+        const formation = {
+            // Goalkeeper
+            gk: { x: 50, y: 90 },
+            // Defenders
+            lb: { x: 15, y: 70 },
+            lcb1: { x: 30, y: 60 },
+            lcb2: { x: 70, y: 80 },
+            rcb: { x: 85, y: 70 },
+            // Midfielders
+            cdm: { x: 50, y: 45 },
+            lcm: { x: 40, y: 50 },
+            rcm: { x: 65, y: 45 },
+            // Forwards (LW/RW)
+            lw: { x: 20, y: 25 },
+            st: { x: 80, y: 20 },
+            cf: { x: 65, y: 25 },
+            rw: { x: 85, y: 25 },
+            // Striker (ST)
+            st: { x: 45, y: 20 }
+        };
+
+        // Render players on the pitch
+        function renderTeamSheet() {
+            const pitch = document.querySelector('.pitch');
+            if (!pitch) return;
+
+            // Clear existing players
+            const existingPlayers = pitch.querySelectorAll('.player');
+            existingPlayers.forEach(p => p.remove());
+
+            // Render each player
+            squad.forEach((player, index) => {
+                // Determine position from player data
+                let x = 50, y = 90;
+                let slot = null;
+
+                // Find correct formation slot based on position
+                switch(player.position) {
+                    case 'GK':
+                        slot = formation.gk;
+                        break;
+                    case 'LB':
+                        slot = formation.lb;
+                        break;
+                    case 'LCB':
+                    case 'RCB':
+                        slot = formation.lcb1;
+                        break;
+                    case 'RCM':
+                        slot = formation.lcb2;
+                        break;
+                    case 'RB':
+                        slot = formation.rcb;
+                        break;
+                    case 'CDM':
+                        slot = formation.cdm;
+                        break;
+                    case 'LCM':
+                    case 'RCM':
+                        slot = formation.cdm;
+                        break;
+                    case 'CM':
+                        slot = formation.lcm;
+                        break;
+                    case 'LCM':
+                        slot = formation.rcm;
+                        break;
+                    case 'LW':
+                        slot = formation.lw;
+                        break;
+                    case 'ST':
+                    case 'CF':
+                        slot = formation.cf;
+                        break;
+                    case 'CAM':
+                        slot = formation.cam;
+                        break;
+                    case 'LM':
+                        slot = formation.lw;
+                        break;
+                    case 'RM':
+                        slot = formation.st;
+                        break;
+                    case 'RS':
+                        slot = formation.rw;
+                        break;
+                    case 'CB':
+                        slot = formation.st2;
+                        break;
+                }
+
+                if (!slot) {
+                    console.warn(`No formation slot found for ${player.firstName} ${player.lastName} (${player.position})`);
+                    return;
+                }
+
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+                playerDiv.style.left = x + '%';
+                playerDiv.style.top = y + '%';
+
+                // Player image
+                const img = document.createElement('img');
+                img.src = player.image.startsWith('/') ? player.image : `/images/${player.image}`;
+                img.alt = `${player.firstName} ${player.lastName}`;
+                img.className = 'player-image';
+                img.onerror = function() {
+                    img.style.background = 'linear-gradient(135deg, #e74e4e 0%, #1a1a1a 0%, #143d221 0%)';
+                };
+
+                // Player number
+                const numberEl = document.createElement('div');
+                numberEl.className = 'player-number';
+                numberEl.style.left = '50%';
+                numberEl.style.transform = 'translateX(-50%)';
+                numberEl.textContent = player.id;
+
+                // Player name
+                const nameEl = document.createElement('div');
+                nameEl.className = 'player-name';
+                nameEl.style.left = '50%';
+                nameEl.style.transform = 'translateX(-50%)';
+                nameEl.innerHTML = `<span>${player.firstName}</span><br><span style="font-size: 0.7em; color: rgba(255,255,255,0.7);">${player.lastName}</span>`;
+
+                // Captain indicator
+                if (player.isCaptain) {
+                    const captainIndicator = document.createElement('div');
+                    captainIndicator.className = 'captain-indicator';
+                    playerDiv.appendChild(captainIndicator);
+                }
+
+                // Country flag
+                if (player.countryImage) {
+                    const countryEl = document.createElement('img');
+                    countryEl.src = player.countryImage.startsWith('/') ? player.countryImage : `/images/${player.countryImage}`;
+                    countryEl.className = 'player-country';
+                    countryEl.style.top = '15%';
+                    countryEl.style.right = '15%';
+                    playerDiv.appendChild(countryEl);
+                }
+
+                // Info tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'info-tooltip';
+                tooltip.innerHTML = `<strong>${player.firstName} ${player.lastName}</strong><br><span style="font-size: 10px; color: #ccc;">#${player.id}</span><br>${player.position}`;
+                playerDiv.appendChild(tooltip);
+
+                // Hover effects
+                playerDiv.addEventListener('mouseenter', () => {
+                    tooltip.style.opacity = '1';
+                });
+
+                playerDiv.addEventListener('mouseleave', () => {
+                    tooltip.style.opacity = '0';
+                });
+
+                // Click handler - link back to main app
+                playerDiv.addEventListener('click', () => {
+                    // Could navigate to your app
+                    alert(`${player.firstName} ${player.lastName} - ${player.position}\n\nClick to view in main app`);
+                });
+
+                pitch.appendChild(playerDiv);
+            });
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', renderTeamSheet);
+
+        // Handle window resize
+        window.addEventListener('resize', renderTeamSheet);
+    </script>
+</body>
+</html>
