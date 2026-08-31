@@ -3,7 +3,6 @@
  */
 
 import type { Player } from "./players";
-import { players as defaultPlayers } from "./players";
 
 export type ViewingMode = "individual" | "team" | "formation";
 
@@ -70,10 +69,9 @@ function getPlayerIdsByPosition(
 /**
  * Get formation slots for 4-3-3 formation
  * Maps player IDs to their tactical positions.
- * Accepts the live roster so added/edited/removed players are reflected;
- * defaults to the base squad for convenience.
+ * Accepts the live roster so added/edited/removed players are reflected.
  */
-export function getFormationSlots(players: Player[] = defaultPlayers): FormationSlot[] {
+export function getFormationSlots(players: Player[]): FormationSlot[] {
   // Get players by position
   const gkPlayers = getPlayerIdsByPosition("GK", players);
   const lbPlayers = getPlayerIdsByPosition("LB", players);

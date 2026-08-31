@@ -95,28 +95,27 @@ export function isSuspended(player: Player): boolean {
 }
 
 /**
- * Import and validate raw player data
+ * chelsea.json is an optional one-time bootstrap seed (see server/db.ts) —
+ * not a hard runtime dependency. A static `import ... from '../chelsea.json'`
+ * fails the whole build if the file is ever missing/deleted; `import.meta.glob`
+ * instead resolves to zero matches gracefully, so a missing file just means
+ * an empty base squad rather than a build break.
  */
-async function loadRawData(): Promise<unknown[]> {
-  const rawData = await import('../chelsea.json');
-  return rawData.default as unknown[];
-}
+const seedFiles = import.meta.glob<{ default: unknown[] }>('../chelsea.json', { eager: true });
+const rawPlayersJson: unknown[] = Object.values(seedFiles)[0]?.default ?? [];
 
 /**
  * Get validated players array
  * This is the main export to use in components
  */
 export async function getPlayers(): Promise<Player[]> {
-  const rawData = await loadRawData();
-  return validatePlayers(rawData);
+  return validatePlayers(rawPlayersJson);
 }
 
 /**
  * Get players synchronously (for SSR/hydration compatibility)
- * Note: This returns the raw JSON import directly
  */
-import rawPlayersJson from '../chelsea.json';
-export const players: Player[] = validatePlayers(rawPlayersJson as unknown[]);
+export const players: Player[] = validatePlayers(rawPlayersJson);
 
 /**
  * Get a player by index with wraparound

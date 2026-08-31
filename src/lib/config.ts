@@ -81,9 +81,29 @@ export const CREDIT_TEXT = 'Credit: Lâm Tiên Hưng';
 /**
  * App title
  */
-export const APP_TITLE = 'Chelsea FC Player Showcase';
+export const APP_TITLE = 'Chelsea FC Player Showcase — Squad, Numbers & Profiles';
 
 /**
  * App description
  */
-export const APP_DESCRIPTION = 'Interactive showcase of Chelsea FC players';
+export const APP_DESCRIPTION =
+  'Browse the full Chelsea FC squad in an interactive player showcase. View shirt numbers, positions, nationalities, and the captain in individual, grid, or formation view.';
+
+/**
+ * Canonical site name, used for og:site_name and structured data.
+ */
+export const SITE_NAME = 'Chelsea FC Player Showcase';
+
+/**
+ * Canonical production URL (no trailing slash), used to build absolute URLs
+ * for canonical links, sitemap.xml, robots.txt, and social meta tags.
+ * @default placeholder — set VITE_SITE_URL once the site has a real domain
+ */
+export const SITE_URL = (
+  import.meta.env.VITE_SITE_URL || 'https://chelsea-showcase.example.com'
+).replace(/\/$/, '');
+
+/**
+ * Absolute URL of the default social share image (og:image / twitter:image).
+ */
+export const OG_IMAGE_URL = `${SITE_URL}/logo.png`;

@@ -4,13 +4,16 @@
   import { goto, invalidateAll } from '$app/navigation';
   import type { Player } from '$lib/players';
   import { addPlayer, updatePlayer, deletePlayer, restorePlayer, type PlayerFormData } from '$lib/roster';
+  import { addFlag, updateFlag, deleteFlag, type CountryFlag } from '$lib/flags';
   import PlayerForm from '$lib/components/PlayerForm.svelte';
+  import FlagForm from '$lib/components/FlagForm.svelte';
   import type { PageData } from './$types';
 
   export let data: PageData;
 
   $: roster = data.players;
   $: removed = data.removed;
+  $: flags = data.flags;
   $: nextNumber = roster.reduce((max, p) => Math.max(max, p.number ?? 0), 0) + 1;
 
   let formOpen = false;
@@ -18,6 +21,11 @@
   let pendingDeleteId: Player['id'] | null = null;
   let actionError = '';
   let formSection: HTMLDivElement;
+
+  let flagFormOpen = false;
+  let editingFlag: CountryFlag | null = null;
+  let pendingDeleteFlagId: string | null = null;
+  let flagActionError = '';
 
   function scrollToForm(): void {
     requestAnimationFrame(() =>
@@ -83,6 +91,52 @@
     }
   }
 
+  function openAddFlagForm(): void {
+    editingFlag = null;
+    flagFormOpen = true;
+  }
+
+  function openEditFlagForm(flag: CountryFlag): void {
+    editingFlag = flag;
+    flagFormOpen = true;
+  }
+
+  function closeFlagForm(): void {
+    flagFormOpen = false;
+    editingFlag = null;
+  }
+
+  async function handleFlagFormSubmit(data: { name: string; image: string }): Promise<void> {
+    if (editingFlag) {
+      await updateFlag(editingFlag.id, data);
+    } else {
+      await addFlag(data);
+    }
+    await invalidateAll();
+    closeFlagForm();
+  }
+
+  function requestDeleteFlag(id: string): void {
+    pendingDeleteFlagId = id;
+  }
+
+  function cancelDeleteFlag(): void {
+    pendingDeleteFlagId = null;
+  }
+
+  async function confirmDeleteFlag(id: string): Promise<void> {
+    flagActionError = '';
+    try {
+      await deleteFlag(id);
+      if (editingFlag?.id === id) closeFlagForm();
+      await invalidateAll();
+    } catch (err) {
+      flagActionError = err instanceof Error ? err.message : 'Could not delete this flag.';
+    } finally {
+      pendingDeleteFlagId = null;
+    }
+  }
+
   onMount(() => {
     const editId = $page.url.searchParams.get('edit');
     if (editId) {
@@ -100,6 +154,7 @@
 
 <svelte:head>
   <title>Manage squad — Chelsea FC Player Showcase</title>
+  <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
 <div class="min-h-dvh bg-ink text-white">
@@ -138,6 +193,7 @@
         <PlayerForm
           initial={editingPlayer}
           suggestedNumber={nextNumber}
+          {flags}
           onSubmit={handleFormSubmit}
           onCancel={closeForm}
         />
@@ -205,6 +261,90 @@
       {:else}
         <p class="text-gray-400 text-sm py-8 text-center">No players yet. Add one to get started.</p>
       {/each}
+    </div>
+
+    <div class="mt-10">
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="player-name text-xl">Country flags</h2>
+          <p class="text-gray-400 text-sm mt-1">Reusable flags offered in the player form's country picker.</p>
+        </div>
+        <button
+          type="button"
+          on:click={openAddFlagForm}
+          class="px-3 py-1.5 rounded-lg text-sm font-medium bg-chelsea-blue hover:bg-chelsea-blue-light
+                 active:scale-95 text-white transition-all duration-200
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          + Add flag
+        </button>
+      </div>
+
+      {#if flagActionError}
+        <p class="text-sm text-chelsea-red mb-4">{flagActionError}</p>
+      {/if}
+
+      {#if flagFormOpen}
+        <div class="mb-4">
+          <FlagForm
+            initial={editingFlag}
+            onSubmit={handleFlagFormSubmit}
+            onCancel={closeFlagForm}
+          />
+        </div>
+      {/if}
+
+      <div class="flex flex-col gap-2">
+        {#each flags as flag (flag.id)}
+          <div class="flex items-center gap-4 bg-ink-soft border border-white/10 rounded-lg p-3">
+            <div
+              class="w-9 h-6 rounded-sm bg-cover bg-center bg-black/30 border border-white/15 flex-shrink-0"
+              style="background-image: url('{flag.image}')"
+            ></div>
+            <p class="flex-1 min-w-0 font-medium truncate">{flag.name}</p>
+            {#if pendingDeleteFlagId === flag.id}
+              <div class="flex items-center gap-2 text-sm flex-shrink-0">
+                <span class="text-gray-400 hidden sm:inline">Delete?</span>
+                <button
+                  type="button"
+                  on:click={() => confirmDeleteFlag(flag.id)}
+                  class="text-chelsea-red hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  on:click={cancelDeleteFlag}
+                  class="text-gray-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            {:else}
+              <div class="flex items-center gap-3 flex-shrink-0 text-sm">
+                <button
+                  type="button"
+                  on:click={() => openEditFlagForm(flag)}
+                  class="text-chelsea-blue-light hover:text-white transition-colors
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  on:click={() => requestDeleteFlag(flag.id)}
+                  class="text-chelsea-red hover:text-red-400 transition-colors
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <p class="text-gray-400 text-sm py-8 text-center">No flags yet. Add one to get started.</p>
+        {/each}
+      </div>
     </div>
 
     {#if removed.length}

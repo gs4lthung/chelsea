@@ -103,6 +103,12 @@ describe('getBackgroundStyle', () => {
     expect(style).toContain('/fallback.png');
     expect(style).toContain('background-image');
   });
+
+  it('should never fall back to the literal string "undefined" when called with only a primary image', () => {
+    // This is the actual call shape IndividualView.svelte uses.
+    const style = getBackgroundStyle('/primary.png');
+    expect(style).not.toContain('undefined');
+  });
 });
 
 describe('isValidImageUrl', () => {

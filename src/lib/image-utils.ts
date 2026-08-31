@@ -4,6 +4,7 @@
 
 import {
   FALLBACK_IMAGE_URL,
+  FALLBACK_BG_IMAGE_URL,
   MAX_IMAGE_RETRIES,
   IMAGE_RETRY_DELAY,
 } from './config';
@@ -102,7 +103,7 @@ export function getBackgroundStyle(
   primaryImage: string,
   fallbackImage?: string
 ): string {
-  const bg = fallbackImage || import.meta.env.VITE_FALLBACK_BG_IMAGE_URL;
+  const bg = fallbackImage || FALLBACK_BG_IMAGE_URL;
   return `background-image: url('${primaryImage}'), url('${bg}')`;
 }
 

@@ -4,6 +4,9 @@
 	"version": "0.0.1",
 	"type": "module",
 	"description": "Interactive showcase of Chelsea FC players",
+	"engines": {
+		"node": "22.x"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",

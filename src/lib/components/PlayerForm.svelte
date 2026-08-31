@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { Player } from '$lib/players';
   import type { PlayerFormData } from '$lib/roster';
-  import { COUNTRIES } from '$lib/countries';
+  import type { CountryFlag } from '$lib/flags';
   import { readIconFileAsDataUrl } from '$lib/image-utils';
   import PhotoEditor from './PhotoEditor.svelte';
 
   export let initial: Player | null = null;
   export let suggestedNumber: number | null = null;
+  export let flags: CountryFlag[] = [];
   export let onSubmit: (data: PlayerFormData) => Promise<void>;
   export let onCancel: () => void;
 
@@ -30,7 +31,7 @@
   let isLoadingUrl = false;
 
   let countryImage: string | null = initial?.countryImage ?? null;
-  const initialMatch = COUNTRIES.find((c) => c.flag === countryImage);
+  const initialMatch = flags.find((c) => c.image === countryImage);
   let countrySelection = initialMatch ? initialMatch.name : countryImage ? '__custom__' : '';
   let flagError = '';
   let isProcessingFlag = false;
@@ -39,7 +40,7 @@
     if (countrySelection === '' ) {
       countryImage = null;
     } else if (countrySelection !== '__custom__') {
-      countryImage = COUNTRIES.find((c) => c.name === countrySelection)?.flag ?? null;
+      countryImage = flags.find((c) => c.name === countrySelection)?.image ?? null;
     }
     // '__custom__' keeps whatever countryImage already is until a file is uploaded
   }
@@ -233,8 +234,8 @@
         ></div>
         <select bind:value={countrySelection} on:change={handleCountrySelect} class={inputClass + ' flex-1'}>
           <option value="">No flag</option>
-          {#each COUNTRIES as country}
-            <option value={country.name}>{country.name}</option>
+          {#each flags as flag (flag.id)}
+            <option value={flag.name}>{flag.name}</option>
           {/each}
           <option value="__custom__">Custom…</option>
         </select>

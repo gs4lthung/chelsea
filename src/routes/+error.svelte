@@ -4,6 +4,7 @@
 
 <svelte:head>
 	<title>Page not found — Chelsea FC Player Showcase</title>
+	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
 <div

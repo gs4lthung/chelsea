@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
 
   /** A local file selection or an image fetched via the URL-import flow. */
   export let file: File | Blob;
@@ -14,7 +14,11 @@
 
   const FRAME_WIDTH = 280;
   const frameHeight = Math.round(FRAME_WIDTH / aspect);
-  const EXPORT_WIDTH = 480;
+  // 2x the frame's max zoomed-in display size, so cards stay sharp on retina
+  // screens. Kept as a lossless PNG end-to-end — a JPEG pass here introduced
+  // compression-block seams that the background-removal model would bake
+  // into the cutout as visible lines on the subject.
+  const EXPORT_WIDTH = 960;
   const exportHeight = Math.round(EXPORT_WIDTH / aspect);
 
   let stage: 'crop' | 'preview' = 'crop';
@@ -34,6 +38,20 @@
   let bgRemoved = false;
   let isProcessingBg = false;
   let bgError = '';
+
+  // Manual touch-up brush, for cleaning up spots the automatic background
+  // removal missed (or restoring bits it took that shouldn't have gone).
+  let aiRemovedDataUrl = '';
+  let canvasEl: HTMLCanvasElement;
+  let workingCtx: CanvasRenderingContext2D | null = null;
+  let originalForRestore: HTMLCanvasElement | null = null;
+  let canvasWidth = 0;
+  let canvasHeight = 0;
+  let brushMode: 'erase' | 'restore' = 'erase';
+  let brushSize = 24;
+  let isBrushing = false;
+  let hasBrushEdits = false;
+  let lastPaintPoint: { x: number; y: number } | null = null;
 
   const objectUrls: string[] = [];
   function trackedObjectUrl(f: File | Blob): string {
@@ -93,6 +111,8 @@
     canvas.height = exportHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const exportScale = EXPORT_WIDTH / FRAME_WIDTH;
     const drawW = naturalWidth * zoom * exportScale;
@@ -100,7 +120,7 @@
     const drawX = EXPORT_WIDTH / 2 - drawW / 2 + offsetX * exportScale;
     const drawY = exportHeight / 2 - drawH / 2 + offsetY * exportScale;
     ctx.drawImage(imgEl, drawX, drawY, drawW, drawH);
-    return canvas.toDataURL('image/jpeg', 0.9);
+    return canvas.toDataURL('image/png');
   }
 
   function handleCropNext(): void {
@@ -124,14 +144,57 @@
     });
   }
 
+  function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = src;
+    });
+  }
+
+  /** (Re)draws the given cutout onto the visible working canvas, discarding any brush edits. */
+  function drawMaskOntoCanvas(img: HTMLImageElement): void {
+    if (!workingCtx) return;
+    workingCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+    workingCtx.imageSmoothingEnabled = true;
+    workingCtx.imageSmoothingQuality = 'high';
+    workingCtx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+    hasBrushEdits = false;
+  }
+
   async function handleRemoveBackground(): Promise<void> {
     isProcessingBg = true;
     bgError = '';
     try {
       const { removeBackground } = await import('@imgly/background-removal');
       const blob = await removeBackground(croppedDataUrl);
-      finalDataUrl = await blobToDataUrl(blob);
+      aiRemovedDataUrl = await blobToDataUrl(blob);
+
+      const [maskImg, originalImg] = await Promise.all([
+        loadImage(aiRemovedDataUrl),
+        loadImage(croppedDataUrl),
+      ]);
+      canvasWidth = maskImg.naturalWidth;
+      canvasHeight = maskImg.naturalHeight;
       bgRemoved = true;
+
+      // The canvas only exists in the DOM once bgRemoved flips the template
+      // over to it, so wait a tick before grabbing its context.
+      await tick();
+      workingCtx = canvasEl.getContext('2d');
+      if (!workingCtx) throw new Error('Canvas is not supported in this browser');
+      drawMaskOntoCanvas(maskImg);
+
+      originalForRestore = document.createElement('canvas');
+      originalForRestore.width = canvasWidth;
+      originalForRestore.height = canvasHeight;
+      const restoreCtx = originalForRestore.getContext('2d');
+      if (restoreCtx) {
+        restoreCtx.imageSmoothingEnabled = true;
+        restoreCtx.imageSmoothingQuality = 'high';
+        restoreCtx.drawImage(originalImg, 0, 0, canvasWidth, canvasHeight);
+      }
     } catch (err) {
       bgError =
         err instanceof Error
@@ -142,14 +205,95 @@
     }
   }
 
+  /** Reverts brush touch-ups only, back to the fresh AI cutout. */
+  async function handleResetTouchUps(): Promise<void> {
+    if (!aiRemovedDataUrl) return;
+    drawMaskOntoCanvas(await loadImage(aiRemovedDataUrl));
+  }
+
   function handleUndoBackgroundRemoval(): void {
     finalDataUrl = croppedDataUrl;
     bgRemoved = false;
     bgError = '';
+    aiRemovedDataUrl = '';
+    workingCtx = null;
+    originalForRestore = null;
+    hasBrushEdits = false;
+  }
+
+  function getCanvasPoint(e: PointerEvent): { x: number; y: number } {
+    const rect = canvasEl.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * canvasWidth,
+      y: ((e.clientY - rect.top) / rect.height) * canvasHeight,
+    };
+  }
+
+  function paintAt(x: number, y: number): void {
+    if (!workingCtx) return;
+
+    if (brushMode === 'erase') {
+      // A soft-edged gradient reads more natural than a hard-edged cutout.
+      const gradient = workingCtx.createRadialGradient(x, y, 0, x, y, brushSize);
+      gradient.addColorStop(0, 'rgba(0,0,0,1)');
+      gradient.addColorStop(0.7, 'rgba(0,0,0,1)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      workingCtx.save();
+      workingCtx.globalCompositeOperation = 'destination-out';
+      workingCtx.fillStyle = gradient;
+      workingCtx.beginPath();
+      workingCtx.arc(x, y, brushSize, 0, Math.PI * 2);
+      workingCtx.fill();
+      workingCtx.restore();
+    } else if (originalForRestore) {
+      workingCtx.save();
+      workingCtx.beginPath();
+      workingCtx.arc(x, y, brushSize, 0, Math.PI * 2);
+      workingCtx.clip();
+      workingCtx.drawImage(originalForRestore, 0, 0);
+      workingCtx.restore();
+    }
+
+    hasBrushEdits = true;
+  }
+
+  function paintStroke(from: { x: number; y: number } | null, to: { x: number; y: number }): void {
+    if (!from) {
+      paintAt(to.x, to.y);
+      return;
+    }
+    // Fill in the gap between two points so a fast drag doesn't leave dots.
+    const distance = Math.hypot(to.x - from.x, to.y - from.y);
+    const steps = Math.max(1, Math.ceil(distance / (brushSize / 3)));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      paintAt(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+    }
+  }
+
+  function handleBrushDown(e: PointerEvent): void {
+    isBrushing = true;
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const point = getCanvasPoint(e);
+    paintStroke(null, point);
+    lastPaintPoint = point;
+  }
+
+  function handleBrushMove(e: PointerEvent): void {
+    if (!isBrushing) return;
+    const point = getCanvasPoint(e);
+    paintStroke(lastPaintPoint, point);
+    lastPaintPoint = point;
+  }
+
+  function handleBrushUp(): void {
+    isBrushing = false;
+    lastPaintPoint = null;
   }
 
   function handleConfirm(): void {
-    onConfirm(finalDataUrl);
+    const dataUrl = bgRemoved && canvasEl ? canvasEl.toDataURL('image/png') : finalDataUrl;
+    onConfirm(dataUrl);
   }
 </script>
 
@@ -244,7 +388,18 @@
                background-position: 0 0, 0 8px, 8px -8px, -8px 0;
                background-color: #1a1a1a;"
       >
-        {#if finalDataUrl}
+        {#if bgRemoved}
+          <canvas
+            bind:this={canvasEl}
+            width={canvasWidth}
+            height={canvasHeight}
+            class="absolute inset-0 w-full h-full object-cover touch-none {brushMode === 'erase' ? 'cursor-cell' : 'cursor-copy'}"
+            on:pointerdown={handleBrushDown}
+            on:pointermove={handleBrushMove}
+            on:pointerup={handleBrushUp}
+            on:pointercancel={handleBrushUp}
+          ></canvas>
+        {:else if finalDataUrl}
           <img src={finalDataUrl} alt="Preview" class="absolute inset-0 w-full h-full object-cover" />
         {/if}
 
@@ -281,8 +436,59 @@
         <p class="text-xs text-chelsea-red text-center">{bgError}</p>
       {/if}
 
-      <div class="flex justify-center">
+      {#if bgRemoved}
+        <div class="flex flex-col items-center gap-2">
+          <div class="flex items-center gap-2 text-xs text-gray-300">
+            <div class="flex rounded-lg overflow-hidden border border-white/10">
+              <button
+                type="button"
+                on:click={() => (brushMode = 'erase')}
+                aria-pressed={brushMode === 'erase'}
+                class="px-3 py-1.5 transition-colors {brushMode === 'erase' ? 'bg-chelsea-blue text-white' : 'bg-white/5 hover:bg-white/10'}"
+              >
+                Erase
+              </button>
+              <button
+                type="button"
+                on:click={() => (brushMode = 'restore')}
+                aria-pressed={brushMode === 'restore'}
+                class="px-3 py-1.5 transition-colors {brushMode === 'restore' ? 'bg-chelsea-blue text-white' : 'bg-white/5 hover:bg-white/10'}"
+              >
+                Restore
+              </button>
+            </div>
+            <label class="flex items-center gap-1.5">
+              Size
+              <input
+                type="range"
+                min="6"
+                max="60"
+                step="1"
+                bind:value={brushSize}
+                class="w-20 accent-chelsea-blue"
+              />
+            </label>
+          </div>
+          <p class="text-[11px] text-gray-500 text-center">
+            {brushMode === 'erase'
+              ? 'Paint over leftover background to remove it.'
+              : 'Paint to bring back photo that got erased.'}
+          </p>
+        </div>
+      {/if}
+
+      <div class="flex justify-center gap-4">
         {#if bgRemoved}
+          {#if hasBrushEdits}
+            <button
+              type="button"
+              on:click={handleResetTouchUps}
+              class="text-sm text-gray-400 hover:text-white transition-colors
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+            >
+              Reset touch-ups
+            </button>
+          {/if}
           <button
             type="button"
             on:click={handleUndoBackgroundRemoval}

@@ -3,7 +3,7 @@
   import { replaceState } from '$app/navigation';
   import { gsapFade } from '$lib/motion';
   import type { Player } from '$lib/players';
-  import { BG_IMAGE_URL, CREDIT_URL, CREDIT_TEXT } from '$lib/config';
+  import { BG_IMAGE_URL, CREDIT_URL, CREDIT_TEXT, APP_TITLE, APP_DESCRIPTION, SITE_URL } from '$lib/config';
   import { getNextIndex, type NavigationDirection } from '$lib/navigation';
   import type { ViewingMode } from '$lib/viewing-modes';
   import ModeSwitcher from '$lib/components/ModeSwitcher.svelte';
@@ -40,6 +40,37 @@
   // Get current player (reactive)
   $: currentPlayer = players[currentIndex];
   $: currentImage = currentPlayer?.image || '';
+
+  // Per-view <title>/description so a shared link (?mode=team or
+  // ?player=10) previews something more specific than the generic app title.
+  $: pageTitle =
+    viewingMode === 'individual' && currentPlayer
+      ? `${currentPlayer.firstName} ${currentPlayer.lastName.trim()} — #${currentPlayer.number ?? currentPlayer.id} | Chelsea FC Player Showcase`
+      : viewingMode === 'team'
+        ? 'Squad Grid — Chelsea FC Player Showcase'
+        : viewingMode === 'formation'
+          ? 'Formation View — Chelsea FC Player Showcase'
+          : APP_TITLE;
+  $: pageDescription =
+    viewingMode === 'individual' && currentPlayer
+      ? `${currentPlayer.firstName} ${currentPlayer.lastName.trim()}, Chelsea FC #${currentPlayer.number ?? currentPlayer.id}, plays ${currentPlayer.position}.${currentPlayer.isCaptain ? ' Team captain.' : ''} Browse the full Chelsea FC squad.`
+      : APP_DESCRIPTION;
+
+  // Roster structured data — lets search engines understand the squad as a
+  // list of people rather than just an interactive card UI.
+  const rosterStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsTeam',
+    name: 'Chelsea FC',
+    url: SITE_URL,
+    athlete: data.players.map((p) => ({
+      '@type': 'Person',
+      name: `${p.firstName} ${p.lastName}`.trim(),
+      image: new URL(p.image, SITE_URL).toString(),
+      ...(p.number !== undefined ? { identifier: String(p.number) } : {}),
+      memberOf: { '@type': 'SportsTeam', name: 'Chelsea FC' }
+    }))
+  };
 
   // Keep the URL pointing at the current tab and (if on the player card)
   // the current player — no new history entry per click, just enough that
@@ -191,9 +222,17 @@
   });
 </script>
 
+<svelte:head>
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription} />
+  {@html `<script type="application/ld+json">${JSON.stringify(rosterStructuredData)}</` + `script>`}
+</svelte:head>
+
 <svelte:window on:keydown={handleKeydown} />
 
 <a href="#main-content" class="skip-link">Skip to content</a>
+
+<h1 class="sr-only">{APP_TITLE}</h1>
 
 <div
   class="flex flex-col items-center justify-center min-h-dvh relative overflow-hidden"
