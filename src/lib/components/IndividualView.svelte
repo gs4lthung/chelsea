@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { Player } from '$lib/players';
   import { getBackgroundStyle } from '$lib/image-utils';
-  import { gsapFly, gsapFade, gsapCardIn } from '$lib/motion';
+  import { gsapFade } from '$lib/motion';
+  import { fly } from 'svelte/transition';
+  import { backOut, quintIn } from 'svelte/easing';
 
   export let player: Player | null;
   export let isLoading = false;
@@ -11,8 +13,8 @@
   export let canEdit = false;
 
   $: slideX = direction === 'prev' ? -70 : direction === 'next' ? 70 : 0;
-  $: cardEnter = { x: slideX, duration: 620, ease: 'back.out(1.5)' };
-  $: cardExit = { x: -slideX, duration: 320, ease: 'power2.in' };
+  $: cardEnter = { x: slideX, duration: 950, easing: backOut };
+  $: cardExit = { x: -slideX, duration: 500, easing: quintIn };
 
   // Utility function
   const resizePlayerName = (name: string) =>
@@ -24,8 +26,8 @@
   {#if !isLoading}
     <!-- Player Card -->
     <div
-      in:gsapCardIn={cardEnter}
-      out:gsapFly={cardExit}
+      in:fly={cardEnter}
+      out:fly={cardExit}
       class="relative flex flex-col items-center justify-center
              w-full max-w-[350px] aspect-[7/10]
              bg-cover bg-center bg-no-repeat
@@ -35,9 +37,14 @@
              hover:-translate-y-1
              transition-shadow duration-300
              {player.isCaptain ? 'captain-glow' : ''}
+             {player.position === 'Manager' ? 'manager-glow' : ''}
              {player.isSuspended ? 'suspended-glow' : ''}"
       style={getBackgroundStyle(player.image)}
     >
+      {#if player.position === 'Manager'}
+        <div class="manager-scan"></div>
+      {/if}
+
       <!-- Bottom scrim for legibility -->
       <div
         class="absolute inset-x-0 bottom-0 h-1/3 rounded-b-xl
@@ -53,6 +60,15 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16 3 5l5.5 4L12 4l3.5 5L21 5l-2 11z" /></svg>
           CAPTAIN
         </div>
+      {:else if player.position === 'Manager'}
+        <div
+          class="manager-badge absolute top-4 left-4 z-10 flex items-center gap-1
+                 pl-1.5 pr-2.5 py-1 rounded-full text-xs font-bold tracking-wide"
+          title="Manager"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h6" /></svg>
+          MANAGER
+        </div>
       {/if}
 
       {#if canEdit}
@@ -61,7 +77,7 @@
           class="absolute z-10 text-white/70 hover:text-white bg-black/30 hover:bg-black/50
                  backdrop-blur-md rounded-full p-2 transition-all duration-200
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70
-                 {player.isCaptain ? 'top-14' : 'top-4'} left-4"
+                 {player.isCaptain || player.position === 'Manager' ? 'top-14' : 'top-4'} left-4"
           aria-label="Edit {player.firstName} {player.lastName.trim()}"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>

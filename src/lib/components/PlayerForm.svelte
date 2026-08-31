@@ -102,6 +102,25 @@
     }
   }
 
+  let isLoadingCurrentPhoto = false;
+
+  /** Re-open the photo editor on the photo already set, instead of requiring a fresh upload. */
+  async function handleEditCurrentPhoto(): Promise<void> {
+    if (!photo) return;
+
+    photoError = '';
+    isLoadingCurrentPhoto = true;
+    try {
+      const res = await fetch(photo);
+      if (!res.ok) throw new Error('Could not load the current photo.');
+      editingFile = await res.blob();
+    } catch (err) {
+      photoError = err instanceof Error ? err.message : 'Could not load the current photo.';
+    } finally {
+      isLoadingCurrentPhoto = false;
+    }
+  }
+
   function handlePhotoEditorConfirm(dataUrl: string): void {
     photo = dataUrl;
     editingFile = null;
@@ -170,6 +189,17 @@
             <input type="file" accept="image/*" class="hidden" on:change={handlePhotoChange} />
             {photo ? 'Change photo' : 'Upload photo'}
           </label>
+          {#if photo}
+            <button
+              type="button"
+              on:click={handleEditCurrentPhoto}
+              disabled={isLoadingCurrentPhoto}
+              class="text-sm text-chelsea-blue-light hover:text-white transition-colors disabled:opacity-50
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chelsea-blue-light rounded"
+            >
+              {isLoadingCurrentPhoto ? 'Loading…' : 'Edit photo'}
+            </button>
+          {/if}
           <span class="text-xs text-gray-500">or</span>
           <div class="flex items-center gap-1.5 flex-1 min-w-[160px]">
             <input

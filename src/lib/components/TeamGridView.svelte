@@ -36,6 +36,7 @@
                  hover:-translate-y-1
                  transition-all duration-300
                  {player.isCaptain ? 'captain-glow' : ''}
+                 {player.position === 'Manager' ? 'manager-glow' : ''}
                  {player.isSuspended ? 'suspended-glow' : ''}"
         >
           <!-- Lazy loaded background image -->
@@ -61,6 +62,14 @@
               title="Team captain"
             >
               C
+            </div>
+          {:else if player.position === 'Manager'}
+            <div
+              class="manager-badge absolute top-2 left-2 z-10 flex items-center justify-center
+                     w-6 h-6 rounded-full text-[11px] font-bold"
+              title="Manager"
+            >
+              M
             </div>
           {/if}
 

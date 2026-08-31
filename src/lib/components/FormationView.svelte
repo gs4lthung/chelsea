@@ -69,6 +69,7 @@
                      focus-visible:ring-white focus-visible:ring-offset-2
                      focus-visible:ring-offset-emerald-950
                      {player.isCaptain ? 'captain-glow ring-2 ring-chelsea-gold' : ''}
+                     {player.position === 'Manager' ? 'manager-glow ring-2 ring-chelsea-blue-light' : ''}
                      {player.isSuspended ? 'ring-2 ring-chelsea-red' : ''}"
               on:click={() => onSelectPlayer(player)}
               title="{player.firstName} {player.lastName.trim()}"
@@ -80,6 +81,13 @@
                          flex items-center justify-center text-[9px] font-bold"
                 >
                   C
+                </span>
+              {:else if player.position === 'Manager'}
+                <span
+                  class="manager-badge absolute -top-1 -right-1 w-4 h-4 rounded-full
+                         flex items-center justify-center text-[9px] font-bold"
+                >
+                  M
                 </span>
               {/if}
             </button>
