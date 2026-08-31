@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Player } from '$lib/players';
   import { getBackgroundStyle } from '$lib/image-utils';
-  import { gsapFly, gsapFade } from '$lib/motion';
+  import { gsapFly, gsapFade, gsapCardIn } from '$lib/motion';
 
   export let player: Player | null;
   export let isLoading = false;
@@ -10,9 +10,9 @@
   /** Only the machine running the server can edit the squad. */
   export let canEdit = false;
 
-  $: slideX = direction === 'prev' ? -56 : direction === 'next' ? 56 : 0;
-  $: cardEnter = { x: slideX, duration: 560, ease: 'power3.out' };
-  $: cardExit = { x: -slideX, duration: 380, ease: 'power2.in' };
+  $: slideX = direction === 'prev' ? -70 : direction === 'next' ? 70 : 0;
+  $: cardEnter = { x: slideX, duration: 620, ease: 'back.out(1.5)' };
+  $: cardExit = { x: -slideX, duration: 320, ease: 'power2.in' };
 
   // Utility function
   const resizePlayerName = (name: string) =>
@@ -24,7 +24,7 @@
   {#if !isLoading}
     <!-- Player Card -->
     <div
-      in:gsapFly={cardEnter}
+      in:gsapCardIn={cardEnter}
       out:gsapFly={cardExit}
       class="relative flex flex-col items-center justify-center
              w-full max-w-[350px] aspect-[7/10]
@@ -33,7 +33,7 @@
              shadow-[0_24px_50px_-12px_rgba(10,20,50,0.55)]
              hover:shadow-[0_28px_60px_-10px_rgba(29,70,150,0.4)]
              hover:-translate-y-1
-             transition-all duration-300
+             transition-shadow duration-300
              {player.isCaptain ? 'captain-glow' : ''}
              {player.isSuspended ? 'suspended-glow' : ''}"
       style={getBackgroundStyle(player.image)}
@@ -102,7 +102,7 @@
       in:gsapFade={{ duration: 220 }}
       class="relative flex flex-col justify-end
              w-full max-w-[350px] aspect-[7/10]
-             bg-ink-soft rounded-xl border border-white/10 overflow-hidden"
+             skeleton-metal rounded-xl border border-white/10 overflow-hidden"
     >
       <div class="absolute inset-0 skeleton-shimmer"></div>
       <div class="relative z-10 p-4 flex items-end justify-between">

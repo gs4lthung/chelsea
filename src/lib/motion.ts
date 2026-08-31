@@ -58,6 +58,37 @@ export function gsapFade(node: Element, options: FadeOptions = {}): TransitionCo
   };
 }
 
+interface CardInOptions {
+  x?: number;
+  duration?: number;
+  delay?: number;
+  ease?: string;
+}
+
+/**
+ * Player card entrance: slides in the given direction while scaling up
+ * from slightly-small to full size, with a small overshoot at the end
+ * (via a `back.out` ease) — reads like a card being dealt into place
+ * rather than a flat slide.
+ */
+export function gsapCardIn(node: Element, options: CardInOptions = {}): TransitionConfig {
+  const { x = 0, duration = 620, delay = 0, ease = 'back.out(1.5)' } = options;
+  if (prefersReducedMotion()) return { duration: 0 };
+
+  const easeFn = gsap.parseEase(ease);
+  return {
+    delay,
+    duration,
+    css: (t: number) => {
+      const eased = easeFn(t);
+      const clamped = gsap.utils.clamp(0, 1, eased);
+      const dx = gsap.utils.interpolate(x, 0, eased);
+      const scale = gsap.utils.interpolate(0.85, 1, eased);
+      return `transform: translateX(${dx}px) scale(${scale}); opacity: ${clamped};`;
+    },
+  };
+}
+
 interface PopOptions {
   duration?: number;
   delay?: number;
